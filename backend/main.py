@@ -8,17 +8,20 @@ main.py — FastAPI 后端入口
 - /query/stream 流式问答（SSE）
 - /chats/list 获取对话列表
 - /chats/{chat_id}/messages 获取对话历史
+- CORS 跨域（本地 + 部署后的 Vercel 前端）
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Generator
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -40,6 +43,22 @@ app = FastAPI(
     title="X-TechInsight API",
     description="模块化全栈 RAG 技术文档分析平台",
     version="0.1.0",
+)
+
+# 本地默认允许 Vite；部署后在 Render 环境变量 CORS_ORIGINS 填入 Vercel 地址
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
