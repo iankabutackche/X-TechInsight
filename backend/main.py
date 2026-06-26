@@ -45,8 +45,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# 本地默认允许 Vite；部署后在 Render 环境变量 CORS_ORIGINS 填入 Vercel 地址
-_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+# 本地 Vite + Render 前端；也可在 Render 环境变量 CORS_ORIGINS 追加其它域名（逗号分隔）
+_default_origins = (
+    "http://localhost:5173,"
+    "http://127.0.0.1:5173,"
+    "https://x-techinsight-web.onrender.com"
+)
 CORS_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CORS_ORIGINS", _default_origins).split(",")
@@ -56,6 +60,8 @@ CORS_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    # Render 免费部署兜底：即使忘记配 CORS_ORIGINS，onrender 子域也能跨域
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
