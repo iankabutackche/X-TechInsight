@@ -1,8 +1,15 @@
 /**
  * api.js — 前端与 FastAPI 后端的通信封装
  *
- * 通过 Vite 代理，请求会转发到 http://127.0.0.1:8000
+ * 本地开发：不配置 VITE_API_BASE_URL，走 Vite 代理 → http://127.0.0.1:8000
+ * 生产部署：在 Vercel 设置 VITE_API_BASE_URL=https://你的后端.onrender.com
  */
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+
+function apiUrl(path) {
+  return `${API_BASE}${path}`
+}
 
 async function parseJsonResponse(response) {
   const data = await response.json().catch(() => ({}))
@@ -16,12 +23,12 @@ async function parseJsonResponse(response) {
 }
 
 export async function healthCheck() {
-  const response = await fetch('/health')
+  const response = await fetch(apiUrl('/health'))
   return parseJsonResponse(response)
 }
 
 export async function createChat(name, tag = 'general') {
-  const response = await fetch('/chats/create', {
+  const response = await fetch(apiUrl('/chats/create'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, tag }),
@@ -31,17 +38,17 @@ export async function createChat(name, tag = 'general') {
 }
 
 export async function listChats() {
-  const response = await fetch('/chats/list')
+  const response = await fetch(apiUrl('/chats/list'))
   return parseJsonResponse(response)
 }
 
 export async function getChatMessages(chatId) {
-  const response = await fetch(`/chats/${chatId}/messages`)
+  const response = await fetch(apiUrl(`/chats/${chatId}/messages`))
   return parseJsonResponse(response)
 }
 
 export async function updateChat(chatId, { name, tag } = {}) {
-  const response = await fetch(`/chats/${chatId}`, {
+  const response = await fetch(apiUrl(`/chats/${chatId}`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, tag }),
@@ -55,7 +62,7 @@ export async function uploadFile(file, tag = 'general') {
   formData.append('file', file)
   formData.append('tag', tag)
 
-  const response = await fetch('/files/upload', {
+  const response = await fetch(apiUrl('/files/upload'), {
     method: 'POST',
     body: formData,
   })
@@ -88,14 +95,6 @@ function parseSSEBlock(rawBlock) {
 
 /**
  * 流式问答（SSE）
- *
- * @param {object} params
- * @param {string} params.chatId
- * @param {string} params.question
- * @param {(content: string) => void} params.onToken
- * @param {(sources: Array) => void} params.onSources
- * @param {() => void} params.onDone
- * @param {(message: string) => void} params.onError
  */
 export async function streamQuery({
   chatId,
@@ -105,7 +104,7 @@ export async function streamQuery({
   onDone,
   onError,
 }) {
-  const response = await fetch('/query/stream', {
+  const response = await fetch(apiUrl('/query/stream'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -156,4 +155,8 @@ export async function streamQuery({
   }
 
   onDone?.()
+}
+
+export function getApiBaseUrl() {
+  return API_BASE || '（本地代理 → 127.0.0.1:8000）'
 }
