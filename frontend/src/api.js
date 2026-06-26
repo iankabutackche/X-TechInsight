@@ -2,10 +2,26 @@
  * api.js — 前端与 FastAPI 后端的通信封装
  *
  * 本地开发：不配置 VITE_API_BASE_URL，走 Vite 代理 → http://127.0.0.1:8000
- * 生产部署：在 Vercel 设置 VITE_API_BASE_URL=https://你的后端.onrender.com
+ * 生产部署：Render 环境变量 VITE_API_BASE_URL=https://x-techinsight.onrender.com
+ * 注意：Vite 环境变量在 build 时写入，改完变量必须重新 Deploy
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+function resolveApiBase() {
+  const fromEnv = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '')
+
+  // 环境变量未生效或填错占位符时，生产环境使用兜底地址
+  if (fromEnv && !fromEnv.includes('VITE_API')) {
+    return fromEnv
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+    return 'https://x-techinsight.onrender.com'
+  }
+
+  return ''
+}
+
+const API_BASE = resolveApiBase()
 
 function apiUrl(path) {
   return `${API_BASE}${path}`
